@@ -1,37 +1,91 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from starlette.routing import Route
-import psycopg2
-from starlette.config import Config
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+import db_handler
 
-config = Config('.env')
+# CORS - Enabling All Domain
+middleware = [
+    Middleware(CORSMiddleware, allow_origins=['*'], allow_methods =["*"])
+]
 
-conn = psycopg2.connect(
-    database=config('DATABASE_NAME'),
-    user=config('DATABASE_USER_NAME'),
-    password=config('DATABASE_PASSWORD'),
-    host=config('DATABASE_HOST'),
-    port=config('DATABASE_POST'),
-)
 
-app = Starlette(debug = config("DEBUG"))
+app = Starlette(debug = False, middleware=middleware)
+
+# Sample Ping API to Check for the latest deployed version 
+@app.route("/ping", methods=['GET'])
+def ping(request):
+    db_handler.rr()
+    return JSONResponse({'version': "1.0"})
+
+
+# API to get All items
 @app.route("/api/items/get", methods=['GET'])
-async def get_items(request):
-    curr = conn.cursor()
-    # curr.execute(
-    #     "create table if not exists items (id serial primary key, title text not null unique, imageUrl text not null, position int not null unique )")
+async def getItems(request):
+   try:
+        return JSONResponse({
+            'isError' : False,
+            'data': db_handler.getItems()
+        })
+   except Exception as error:
+       return JSONResponse({
+            'isError' : True,
+            'data': str(error)
+        })
+   
 
-    insertQuery = """insert into items 
-    (title, imageUrl, position ) 
-    values 
-    ('Google', 'https://blog.hubspot.com/hubfs/image8-2.jpg', 1),
-    ('Amazon', 'https://1000logos.net/wp-content/uploads/2016/10/Amazon-logo-meaning.jpg', 2),
-    ('IBM', 'https://www.ibm.com/brand/experience-guides/developer/8f4e3cc2b5d52354a6d43c8edba1e3c9/02_8-bar-reverse.svg', 3),
-    ('ChatGPT', 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/ChatGPT_logo.svg/2048px-ChatGPT_logo.svg.png', 4),
-    ('Microsoft', 'https://png.pngitem.com/pimgs/s/26-260683_microsoft-company-logo-hd-png-download.png', 5)
-    """
+# API to add an item   
+@app.route("/api/items/add", methods = ['POST'])
+async def addItems(request):
+    try:
 
-    fetchQuery = 'select * from items'
-    curr.execute(fetchQuery)
-    data = curr.fetchall()
-    return JSONResponse({'data': data})
+        # Getting request data
+        requestData = await request.json()
+
+        # Executing add to Table logic
+        db_handler.addItem(requestData)
+
+        # After Adding, returning the new set of items
+        return await getItems(request)
+    
+    except Exception as error:
+       return JSONResponse({
+            'isError' : True,
+            'data': str(error)
+        })
+    
+@app.route("/api/items/delete/{id}", methods = ['DELETE'])
+async def deleteItem(request):
+    try:
+        # deleting the specified id
+        db_handler.deleteItem(request.path_params['id'])
+
+        # returning the new list of items after deletion
+        return await getItems(request)
+    
+    except Exception as error:
+       return JSONResponse({
+            'isError' : True,
+            'data': str(error)
+        })
+    
+
+# API to update multiple items at once using its ID    
+@app.route("/api/items/updateMany", methods = ['PUT'])
+async def updateMany(request):
+    try:
+         # Getting request data
+        requestData = await request.json()
+
+        # Executing add to Table logic
+        db_handler.updateItems(requestData['data'])
+
+        # After Updating, returning the new set of items
+        return await getItems(request)
+    
+    except Exception as error:
+       return JSONResponse({
+            'isError' : True,
+            'data': str(error)
+        })
+    

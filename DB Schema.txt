@@ -1,0 +1,12 @@
+DB : 
+create database raft;
+
+Table:
+create table items 
+(
+    id serial primary key, 
+    title text not null unique, 
+    imageUrl text not null, 
+    position int not null 
+)
+
