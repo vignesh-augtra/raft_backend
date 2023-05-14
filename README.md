@@ -1,12 +1,15 @@
 # raft_backend
 
 Postgre SQL from AWS RDS
+
 Deployment using AWS App Runner
 
 Backend Domain : https://qqeaur9dda.us-east-2.awsapprunner.com/
 
 1. Add Items 
+
   EndPoint : /api/items/add (POST)
+  
   Sample Request JSON : 
   {
       "title":"B",
@@ -14,13 +17,17 @@ Backend Domain : https://qqeaur9dda.us-east-2.awsapprunner.com/
   }
 
 2. Get items
+
   EndPoint : /api/items/get (GET)
 
 3. Delete item
+
   EndPoint : /api/items/delete/{id} (DELETE) 
   
 4. UpdatePosition
+
   EndPoint : /api/items/updateMany (UPDATE)
+  
   Sample Request JSON :
     {
     "data": [
